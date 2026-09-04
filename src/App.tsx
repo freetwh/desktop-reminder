@@ -39,9 +39,9 @@ const LEGACY_SCALE_OPTIONS = [80, 100, 120] as const;
 const MIN_INTERVAL_MINUTES = 1;
 const MAX_INTERVAL_MINUTES = 1_440;
 const MODEL_OPTIONS = [
-  { id: 'haru', name: 'Haru', path: '/live2d/haru/Haru.model3.json' },
-  { id: 'hibiki', name: 'Hibiki', path: '/live2d/hibiki/runtime/hibiki.model3.json' },
-  { id: 'zundamon', name: 'Zundamon', path: '/live2d/zundamon/runtime/zundamon.model3.json' },
+  { id: 'haru', name: 'Haru', path: './live2d/haru/Haru.model3.json' },
+  { id: 'hibiki', name: 'Hibiki', path: './live2d/hibiki/runtime/hibiki.model3.json' },
+  { id: 'zundamon', name: 'Zundamon', path: './live2d/zundamon/runtime/zundamon.model3.json' },
 ] as const;
 
 function readScalePercent(): number {

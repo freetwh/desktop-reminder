@@ -1,9 +1,16 @@
 import { Application, Ticker } from 'pixi.js';
+import { ShaderSystem } from '@pixi/core';
+import { install as installUnsafeEval } from '@pixi/unsafe-eval';
 import {
   config as live2DConfig,
   Cubism4InternalModel,
   Live2DModel,
 } from 'pixi-live2d-display/cubism4';
+
+// Pixi's shader generator uses Function in production. Tauri's CSP blocks
+// unsafe-eval, so install Pixi's CSP-compatible shader fallback before the
+// first renderer is created.
+installUnsafeEval({ ShaderSystem });
 
 export type ReminderLive2DModel = Live2DModel<Cubism4InternalModel>;
 
