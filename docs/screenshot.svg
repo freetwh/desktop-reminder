@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1200" height="720" viewBox="0 0 1200 720" role="img" aria-labelledby="title desc">
-  <title id="title">桌面姿势提醒挂件界面预览</title>
+  <title id="title">姿态提醒桌面挂件界面预览</title>
   <desc id="desc">透明桌面上的 Live2D 角色和右键控制栏</desc>
   <defs>
     <linearGradient id="desk" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#f5e7e2"/><stop offset="1" stop-color="#d9e8e8"/></linearGradient>

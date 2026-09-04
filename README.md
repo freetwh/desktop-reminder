@@ -1,8 +1,8 @@
-# 姿势小提醒
+# 姿态提醒
 
 一个住在桌面上的 Live2D 姿势提醒伙伴：到时间会轻声提醒你站起来、坐好或走动一下。
 
-![姿势小提醒界面预览](docs/screenshot.svg)
+![姿态提醒界面预览](docs/screenshot.svg)
 
 一个基于 Tauri 2、React、PixiJS 6 和 `pixi-live2d-display` 的透明桌面挂件。默认每 30 分钟在「站一站 → 坐一坐 → 走一走」之间轮换，以温馨文案和约 3 秒的本地 8-bit 铃音提醒切换办公姿势。
 

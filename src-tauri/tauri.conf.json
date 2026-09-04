@@ -1,6 +1,6 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "姿势小提醒",
+  "productName": "姿态提醒",
   "version": "0.1.0",
   "identifier": "com.anywit.personal-reminder",
   "build": {
@@ -14,7 +14,7 @@
     "windows": [
       {
         "label": "main",
-        "title": "姿势小提醒",
+        "title": "姿态提醒",
         "width": 340,
         "height": 460,
         "decorations": false,
