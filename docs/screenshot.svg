@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="720" viewBox="0 0 1200 720" role="img" aria-labelledby="title desc">
+  <title id="title">桌面姿势提醒挂件界面预览</title>
+  <desc id="desc">透明桌面上的 Live2D 角色和右键控制栏</desc>
+  <defs>
+    <linearGradient id="desk" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#f5e7e2"/><stop offset="1" stop-color="#d9e8e8"/></linearGradient>
+    <linearGradient id="card" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#fffdfc" stop-opacity=".96"/><stop offset="1" stop-color="#f7efef" stop-opacity=".94"/></linearGradient>
+    <filter id="shadow" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="14"/><feComponentTransfer><feFuncA type="linear" slope=".22"/></feComponentTransfer><feOffset dy="10"/></filter>
+  </defs>
+  <rect width="1200" height="720" rx="28" fill="url(#desk)"/>
+  <circle cx="1000" cy="115" r="170" fill="#fff" opacity=".28"/>
+  <rect x="420" y="84" width="360" height="560" rx="28" fill="#5f4c54" opacity=".18" filter="url(#shadow)"/>
+  <rect x="420" y="74" width="360" height="560" rx="28" fill="url(#card)" stroke="#fff" stroke-width="3"/>
+  <rect x="445" y="100" width="310" height="40" rx="20" fill="#fff" opacity=".74"/>
+  <circle cx="470" cy="120" r="6" fill="#d28a84"/><circle cx="490" cy="120" r="6" fill="#e3b2a9"/><circle cx="510" cy="120" r="6" fill="#a9c9c4"/>
+  <path d="M600 187c-67 0-107 57-107 139 0 120 42 205 107 205s107-85 107-205c0-82-40-139-107-139Z" fill="#f0c7bd" stroke="#b46f6c" stroke-width="5"/>
+  <path d="M505 263c13-59 48-92 95-92 47 0 82 33 95 92-34-27-61-38-95-38s-61 11-95 38Z" fill="#765b67"/>
+  <circle cx="561" cy="300" r="10" fill="#51434e"/><circle cx="639" cy="300" r="10" fill="#51434e"/>
+  <path d="M570 355q30 24 60 0" fill="none" stroke="#9b5e63" stroke-width="7" stroke-linecap="round"/>
+  <path d="M520 430q80-40 160 0v80q-80 42-160 0Z" fill="#c77f82" opacity=".88"/>
+  <rect x="270" y="176" width="220" height="92" rx="22" fill="#fffdfc" stroke="#ead3d0" stroke-width="3"/>
+  <path d="M467 248l26 17-34 2Z" fill="#fffdfc" stroke="#ead3d0" stroke-width="3"/>
+  <text x="300" y="214" font-family="-apple-system,BlinkMacSystemFont,sans-serif" font-size="22" fill="#715c66">该起来活动一下啦</text>
+  <text x="300" y="244" font-family="-apple-system,BlinkMacSystemFont,sans-serif" font-size="16" fill="#a1848b">站一站，放松肩颈</text>
+  <rect x="302" y="555" width="596" height="62" rx="31" fill="#fffdfc" stroke="#ead3d0" stroke-width="3"/>
+  <g font-family="-apple-system,BlinkMacSystemFont,sans-serif" text-anchor="middle">
+    <text x="348" y="581" font-size="22" fill="#b46f6c">⌖</text><text x="348" y="602" font-size="12" fill="#806d75">置顶</text>
+    <text x="430" y="581" font-size="22" fill="#b46f6c">◌</text><text x="430" y="602" font-size="12" fill="#806d75">大小</text>
+    <text x="512" y="581" font-size="22" fill="#b46f6c">♢</text><text x="512" y="602" font-size="12" fill="#806d75">试一下</text>
+    <text x="594" y="581" font-size="22" fill="#b46f6c">◷</text><text x="594" y="602" font-size="12" fill="#806d75">30分</text>
+    <text x="676" y="581" font-size="22" fill="#b46f6c">✦</text><text x="676" y="602" font-size="12" fill="#806d75">Haru</text>
+    <text x="758" y="581" font-size="22" fill="#b46f6c">♫</text><text x="758" y="602" font-size="12" fill="#806d75">原声开</text>
+    <text x="840" y="581" font-size="22" fill="#9b8b91">Ⅱ</text><text x="840" y="602" font-size="12" fill="#806d75">暂停</text>
+  </g>
+</svg>
