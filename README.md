@@ -2,7 +2,7 @@
 
 一个住在桌面上的 Live2D 姿势提醒伙伴：到时间会轻声提醒你站起来、坐好或走动一下。
 
-![姿态提醒界面预览](docs/screenshot.svg)
+![姿态提醒界面预览](docs/screenshot.jpg)
 
 一个基于 Tauri 2、React、PixiJS 6 和 `pixi-live2d-display` 的透明桌面挂件。默认每 30 分钟在「站一站 → 坐一坐 → 走一走」之间轮换，以温馨文案和完整一首《两只老虎》的本地 8-bit 铃音提醒切换办公姿势；气泡会一直保留到点击 OK，或最多自动显示 5 分钟（不超过当前提醒间隔）。
 
@@ -29,7 +29,7 @@ pnpm build:desktop
 - 提醒间隔：`src/reminders.ts` 中的 `REMINDER_INTERVAL_MS`
 - 默认模型入口：`src/live2dScene.ts`
 - 视觉样式：`src/styles.css`
-- 界面预览：`docs/screenshot.svg`
+- 界面预览：`docs/screenshot.jpg`
 
 ## Live2D 资源说明
 
