@@ -1,31 +1,49 @@
-const NOTES = [659.25, 783.99, 987.77, 783.99, 880, 1046.5, 987.77, 783.99];
+// 两只老虎：完整旋律（C 大调）。每个元素是音高和拍数，最后一拍稍作延长。
+const SONG = [
+  [261.63, 1], [293.66, 1], [329.63, 1], [261.63, 1],
+  [261.63, 1], [293.66, 1], [329.63, 1], [261.63, 1],
+  [329.63, 1], [349.23, 1], [392, 2],
+  [329.63, 1], [349.23, 1], [392, 2],
+  [392, 1], [440, 1], [392, 1], [349.23, 1], [329.63, 1], [261.63, 1],
+  [392, 1], [440, 1], [392, 1], [349.23, 1], [329.63, 1], [261.63, 1],
+  [261.63, 1], [392, 1], [261.63, 2],
+  [261.63, 1], [392, 1], [261.63, 2],
+] as const;
+
+const BEAT_SECONDS = 0.28;
 
 let context: AudioContext | null = null;
 
-/** A soft three-second 8-bit chime, synthesized locally with no media dependency. */
+/** A soft, complete 8-bit rendition of "两只老虎", synthesized locally. */
 export function playBitChime(): () => void {
   context ??= new AudioContext();
   const audioContext = context;
+  if (audioContext.state === 'suspended') void audioContext.resume();
   const start = audioContext.currentTime;
   const master = audioContext.createGain();
+  const songDuration = SONG.reduce((total, [, beats]) => total + beats * BEAT_SECONDS, 0);
   master.gain.setValueAtTime(0.0001, start);
-  master.gain.exponentialRampToValueAtTime(0.12, start + 0.05);
-  master.gain.setValueAtTime(0.12, start + 2.65);
-  master.gain.exponentialRampToValueAtTime(0.0001, start + 2.98);
+  // 提高整体响度，让提醒音在正常系统音量下更容易听见。
+  master.gain.exponentialRampToValueAtTime(0.35, start + 0.05);
+  master.gain.setValueAtTime(0.35, start + songDuration - 0.18);
+  master.gain.exponentialRampToValueAtTime(0.0001, start + songDuration);
   master.connect(audioContext.destination);
 
-  const oscillators = NOTES.map((frequency, index) => {
+  let elapsed = 0;
+  const oscillators = SONG.map(([frequency, beats]) => {
     const oscillator = audioContext.createOscillator();
     const gain = audioContext.createGain();
-    const noteStart = start + index * 0.36;
+    const noteStart = start + elapsed;
+    const noteDuration = beats * BEAT_SECONDS;
+    elapsed += noteDuration;
     oscillator.type = 'square';
     oscillator.frequency.setValueAtTime(frequency, noteStart);
     gain.gain.setValueAtTime(0.0001, noteStart);
     gain.gain.exponentialRampToValueAtTime(0.36, noteStart + 0.018);
-    gain.gain.exponentialRampToValueAtTime(0.0001, noteStart + 0.28);
+    gain.gain.exponentialRampToValueAtTime(0.0001, noteStart + noteDuration - 0.03);
     oscillator.connect(gain).connect(master);
     oscillator.start(noteStart);
-    oscillator.stop(Math.min(noteStart + 0.3, start + 3));
+    oscillator.stop(noteStart + noteDuration);
     return oscillator;
   });
 

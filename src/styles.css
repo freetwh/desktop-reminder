@@ -52,6 +52,9 @@ button { font: inherit; }
 .drag-dots { width: 18px; color: rgba(102, 87, 92, 0.35); }
 
 .speech-bubble {
+  display: flex;
+  align-items: center;
+  gap: 10px;
   position: absolute;
   z-index: 15;
   bottom: calc(73px + var(--pet-height));
@@ -69,6 +72,18 @@ button { font: inherit; }
   line-height: 1.45;
   animation: bubble-in 420ms cubic-bezier(.2,.9,.25,1.15);
 }
+.speech-bubble span { flex: 1; }
+.speech-bubble button {
+  flex: 0 0 auto;
+  padding: 3px 9px;
+  border: 0;
+  border-radius: 9px;
+  color: #fff;
+  background: #c9877f;
+  font-size: 11px;
+  cursor: pointer;
+}
+.speech-bubble button:hover { background: #b87370; }
 
 .pet-stage {
   position: absolute;

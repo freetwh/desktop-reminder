@@ -26,11 +26,11 @@ import {
   nextPostureIndex,
   pickMessage,
   POSTURE_REMINDERS,
+  getReminderBubbleDurationMs,
   shouldResetAfterSuspension,
 } from './reminders';
 import { setLive2DSoundEnabled as setLive2DSound } from './live2dScene';
 
-const BUBBLE_DURATION_MS = 12_000;
 const MIN_SCALE_PERCENT = 50;
 const MAX_SCALE_PERCENT = 100;
 const SCALE_STEP_PERCENT = 5;
@@ -108,7 +108,10 @@ export default function App() {
     if (soundEnabled) playBitChime();
 
     if (bubbleTimer.current !== null) window.clearTimeout(bubbleTimer.current);
-    bubbleTimer.current = window.setTimeout(() => setActiveReminder(null), BUBBLE_DURATION_MS);
+    bubbleTimer.current = window.setTimeout(() => {
+      bubbleTimer.current = null;
+      setActiveReminder(null);
+    }, getReminderBubbleDurationMs(intervalMs));
 
     if (advanceRotation) {
       const nextIndex = nextPostureIndex(postureIndex);
@@ -180,6 +183,14 @@ export default function App() {
     setPinned(next);
     localStorage.setItem('always-on-top', String(next));
     void setAlwaysOnTop(next);
+  };
+
+  const dismissReminder = () => {
+    if (bubbleTimer.current !== null) {
+      window.clearTimeout(bubbleTimer.current);
+      bubbleTimer.current = null;
+    }
+    setActiveReminder(null);
   };
 
   const toggleSound = () => {
@@ -273,7 +284,8 @@ export default function App() {
 
       {activeReminder ? (
         <div className="speech-bubble" role="status" aria-live="assertive">
-          {activeReminder.message}
+          <span>{activeReminder.message}</span>
+          <button type="button" onClick={dismissReminder} aria-label="确认提醒">OK</button>
         </div>
       ) : null}
 

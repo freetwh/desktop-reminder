@@ -1,4 +1,10 @@
 export const REMINDER_INTERVAL_MS = 60 * 60 * 1000;
+export const MAX_BUBBLE_DURATION_MS = 5 * 60 * 1000;
+
+/** Keep a reminder visible for up to five minutes, without outlasting its interval. */
+export function getReminderBubbleDurationMs(intervalMs: number): number {
+  return Math.min(MAX_BUBBLE_DURATION_MS, intervalMs);
+}
 export const SUSPEND_GAP_MS = 90 * 1000;
 
 export type Posture = 'stand' | 'sit' | 'walk';

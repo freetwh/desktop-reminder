@@ -4,6 +4,8 @@ import {
   nextPostureIndex,
   pickMessage,
   POSTURE_REMINDERS,
+  getReminderBubbleDurationMs,
+  MAX_BUBBLE_DURATION_MS,
   shouldResetAfterSuspension,
   SUSPEND_GAP_MS,
 } from './reminders';
@@ -22,4 +24,9 @@ test('message selection stays inside the active posture', () => {
 test('a long timer gap is treated as sleep or suspension', () => {
   assert.equal(shouldResetAfterSuspension(1_000, 1_000 + SUSPEND_GAP_MS), false);
   assert.equal(shouldResetAfterSuspension(1_000, 1_001 + SUSPEND_GAP_MS), true);
+});
+
+test('reminder bubble lasts no longer than five minutes or the reminder interval', () => {
+  assert.equal(getReminderBubbleDurationMs(60_000), 60_000);
+  assert.equal(getReminderBubbleDurationMs(10 * 60_000), MAX_BUBBLE_DURATION_MS);
 });
