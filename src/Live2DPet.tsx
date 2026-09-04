@@ -12,9 +12,10 @@ let pendingTeardown: Promise<void> = Promise.resolve();
 type Live2DPetProps = {
   reminderRevision: number;
   speaking: boolean;
+  modelPath: string;
 };
 
-export default function Live2DPet({ reminderRevision, speaking }: Live2DPetProps) {
+export default function Live2DPet({ reminderRevision, speaking, modelPath }: Live2DPetProps) {
   const hostRef = useRef<HTMLDivElement>(null);
   const sceneRef = useRef<ReminderScene | null>(null);
   const [failed, setFailed] = useState(false);
@@ -30,7 +31,7 @@ export default function Live2DPet({ reminderRevision, speaking }: Live2DPetProps
     const setup = pendingTeardown
       .then(async () => {
         if (controller.signal.aborted) return;
-        scene = await createReminderScene(host, controller.signal);
+        scene = await createReminderScene(host, controller.signal, modelPath);
         if (controller.signal.aborted) {
           destroyReminderScene(scene);
           scene = null;
@@ -54,7 +55,7 @@ export default function Live2DPet({ reminderRevision, speaking }: Live2DPetProps
         scene = null;
       });
     };
-  }, []);
+  }, [modelPath]);
 
   useEffect(() => {
     const scene = sceneRef.current;

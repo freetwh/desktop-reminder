@@ -20,6 +20,7 @@
     "@pixi/sprite": "6.5.10",
     "@pixi/utils": "6.5.10",
     "@tauri-apps/api": "^2.11.1",
+    "lucide-react": "^1.40.0",
     "pixi-live2d-display": "0.4.0",
     "pixi.js": "6.5.10",
     "react": "^19.0.1",

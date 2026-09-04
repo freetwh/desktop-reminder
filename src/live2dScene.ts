@@ -16,6 +16,11 @@ export type ReminderScene = {
 Live2DModel.registerTicker(Ticker);
 live2DConfig.sound = false;
 
+/** Enable or disable the sound clips bundled with each Live2D model. */
+export function setLive2DSoundEnabled(enabled: boolean): void {
+  live2DConfig.sound = enabled;
+}
+
 function fitModel(app: Application, model: ReminderLive2DModel): void {
   const availableWidth = app.renderer.width / app.renderer.resolution;
   const availableHeight = app.renderer.height / app.renderer.resolution;
@@ -32,6 +37,7 @@ function fitModel(app: Application, model: ReminderLive2DModel): void {
 export async function createReminderScene(
   host: HTMLElement,
   signal: AbortSignal,
+  modelPath: string,
 ): Promise<ReminderScene> {
   const app = new Application({
     width: Math.max(host.clientWidth, 1),
@@ -50,7 +56,7 @@ export async function createReminderScene(
 
   let model: ReminderLive2DModel | null = null;
   try {
-    model = (await Live2DModel.from('/live2d/haru/Haru.model3.json', {
+    model = (await Live2DModel.from(modelPath, {
       autoUpdate: true,
       autoInteract: true,
     })) as ReminderLive2DModel;

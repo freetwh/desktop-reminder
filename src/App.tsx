@@ -1,10 +1,24 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState, type CSSProperties } from 'react';
+import {
+  BellRing,
+  Clock3,
+  AudioLines,
+  GripHorizontal,
+  LogOut,
+  Pause,
+  Pin,
+  Play,
+  Scaling,
+  Sparkles,
+  Volume2,
+  VolumeX,
+} from 'lucide-react';
 import { playBitChime, primeAudio } from './chime';
 import {
   closeDesktopWidget,
   isScreenLocked,
   placeWidgetAtBottomRight,
-  resizeDesktopWidget,
+  startDesktopDrag,
   setAlwaysOnTop,
 } from './desktopWindow';
 import Live2DPet from './Live2DPet';
@@ -12,21 +26,45 @@ import {
   nextPostureIndex,
   pickMessage,
   POSTURE_REMINDERS,
-  REMINDER_INTERVAL_MS,
   shouldResetAfterSuspension,
 } from './reminders';
+import { setLive2DSoundEnabled as setLive2DSound } from './live2dScene';
 
 const BUBBLE_DURATION_MS = 12_000;
-const SCALE_OPTIONS = [0.8, 1, 1.2] as const;
+const MIN_SCALE_PERCENT = 50;
+const MAX_SCALE_PERCENT = 100;
+const SCALE_STEP_PERCENT = 5;
+const DEFAULT_SCALE_PERCENT = 100;
+const LEGACY_SCALE_OPTIONS = [80, 100, 120] as const;
+const MIN_INTERVAL_MINUTES = 1;
+const MAX_INTERVAL_MINUTES = 1_440;
+const MODEL_OPTIONS = [
+  { id: 'haru', name: 'Haru', path: '/live2d/haru/Haru.model3.json' },
+  { id: 'hibiki', name: 'Hibiki', path: '/live2d/hibiki/runtime/hibiki.model3.json' },
+  { id: 'zundamon', name: 'Zundamon', path: '/live2d/zundamon/runtime/zundamon.model3.json' },
+] as const;
 
-function readScaleIndex(): number {
-  const stored = Number(localStorage.getItem('scale-index') ?? 1);
-  return Number.isInteger(stored) && stored >= 0 && stored < SCALE_OPTIONS.length ? stored : 1;
+function readScalePercent(): number {
+  const stored = Number(localStorage.getItem('scale-percent'));
+  if (Number.isFinite(stored) && stored >= MIN_SCALE_PERCENT && stored <= MAX_SCALE_PERCENT) {
+    return stored;
+  }
+
+  const legacyIndex = Number(localStorage.getItem('scale-index') ?? 1);
+  return Math.min(
+    MAX_SCALE_PERCENT,
+    Math.max(MIN_SCALE_PERCENT, LEGACY_SCALE_OPTIONS[legacyIndex] ?? DEFAULT_SCALE_PERCENT),
+  );
+}
+
+function readIntervalMinutes(): number {
+  const stored = Number(localStorage.getItem('interval-minutes') ?? 30);
+  return Number.isInteger(stored) && stored >= MIN_INTERVAL_MINUTES && stored <= MAX_INTERVAL_MINUTES
+    ? stored
+    : 30;
 }
 
 type ActiveReminder = {
-  icon: string;
-  label: string;
   message: string;
 };
 
@@ -35,24 +73,28 @@ function readStoredBoolean(key: string, fallback: boolean): boolean {
   return value === null ? fallback : value === 'true';
 }
 
-function formatRemaining(milliseconds: number): string {
-  const minutes = Math.max(0, Math.ceil(milliseconds / 60_000));
-  if (minutes >= 60) return '约 1 小时后';
-  return `${minutes} 分钟后`;
-}
-
 export default function App() {
   const [postureIndex, setPostureIndex] = useState(() =>
     Number(localStorage.getItem('posture-index') ?? 0) % POSTURE_REMINDERS.length,
   );
   const [alwaysOnTop, setPinned] = useState(() => readStoredBoolean('always-on-top', true));
   const [soundEnabled, setSoundEnabled] = useState(() => readStoredBoolean('sound-enabled', true));
+  const [live2DSoundEnabled, setLive2DSoundEnabled] = useState(() =>
+    readStoredBoolean('live2d-sound-enabled', false),
+  );
   const [paused, setPaused] = useState(false);
-  const [scaleIndex, setScaleIndex] = useState(readScaleIndex);
+  const [intervalMinutes, setIntervalMinutes] = useState(readIntervalMinutes);
+  const [intervalDraft, setIntervalDraft] = useState(() => String(readIntervalMinutes()));
+  const [showIntervalPicker, setShowIntervalPicker] = useState(false);
+  const [modelId, setModelId] = useState(() => localStorage.getItem('model-id') ?? 'haru');
+  const [showModelPicker, setShowModelPicker] = useState(false);
+  const [scalePercent, setScalePercent] = useState(readScalePercent);
+  const [showScalePicker, setShowScalePicker] = useState(false);
   const [activeReminder, setActiveReminder] = useState<ActiveReminder | null>(null);
+  const [showControls, setShowControls] = useState(false);
   const [reminderRevision, setReminderRevision] = useState(0);
-  const [remaining, setRemaining] = useState(REMINDER_INTERVAL_MS);
-  const nextReminderAt = useRef(Date.now() + REMINDER_INTERVAL_MS);
+  const intervalMs = intervalMinutes * 60 * 1000;
+  const nextReminderAt = useRef(Date.now() + intervalMs);
   const lastTickAt = useRef(Date.now());
   const screenLocked = useRef(false);
   const bubbleTimer = useRef<number | null>(null);
@@ -60,8 +102,6 @@ export default function App() {
   const showReminder = useCallback((advanceRotation: boolean) => {
     const reminder = POSTURE_REMINDERS[postureIndex]!;
     setActiveReminder({
-      icon: reminder.icon,
-      label: reminder.label,
       message: pickMessage(reminder),
     });
     setReminderRevision((revision) => revision + 1);
@@ -74,27 +114,25 @@ export default function App() {
       const nextIndex = nextPostureIndex(postureIndex);
       setPostureIndex(nextIndex);
       localStorage.setItem('posture-index', String(nextIndex));
-      nextReminderAt.current = Date.now() + REMINDER_INTERVAL_MS;
+      nextReminderAt.current = Date.now() + intervalMs;
     }
-  }, [postureIndex, soundEnabled]);
+  }, [intervalMs, postureIndex, soundEnabled]);
 
   useEffect(() => {
-    const scale = SCALE_OPTIONS[Math.min(Math.max(scaleIndex, 0), SCALE_OPTIONS.length - 1)]!;
     void setAlwaysOnTop(alwaysOnTop);
-    void resizeDesktopWidget(scale).then(() => placeWidgetAtBottomRight(scale));
+    void placeWidgetAtBottomRight();
   }, []);
 
   useEffect(() => {
     const timer = window.setInterval(() => {
       const now = Date.now();
       if (document.visibilityState !== 'visible' || shouldResetAfterSuspension(lastTickAt.current, now)) {
-        nextReminderAt.current = now + REMINDER_INTERVAL_MS;
+        nextReminderAt.current = now + intervalMs;
       }
       lastTickAt.current = now;
 
       if (paused || screenLocked.current) return;
       const timeLeft = nextReminderAt.current - now;
-      setRemaining(timeLeft);
       if (timeLeft <= 0) showReminder(true);
     }, 1000);
 
@@ -102,8 +140,7 @@ export default function App() {
       if (document.visibilityState === 'visible') {
         const now = Date.now();
         lastTickAt.current = now;
-        nextReminderAt.current = now + REMINDER_INTERVAL_MS;
-        setRemaining(REMINDER_INTERVAL_MS);
+        nextReminderAt.current = now + intervalMs;
       }
     };
     document.addEventListener('visibilitychange', handleVisibility);
@@ -111,7 +148,7 @@ export default function App() {
       window.clearInterval(timer);
       document.removeEventListener('visibilitychange', handleVisibility);
     };
-  }, [paused, showReminder]);
+  }, [intervalMs, paused, showReminder]);
 
   useEffect(() => {
     let disposed = false;
@@ -123,8 +160,7 @@ export default function App() {
       if (wasLocked && !locked) {
         const now = Date.now();
         lastTickAt.current = now;
-        nextReminderAt.current = now + REMINDER_INTERVAL_MS;
-        setRemaining(REMINDER_INTERVAL_MS);
+        nextReminderAt.current = now + intervalMs;
       }
     };
     void refreshLockState();
@@ -133,7 +169,7 @@ export default function App() {
       disposed = true;
       window.clearInterval(timer);
     };
-  }, []);
+  }, [intervalMs]);
 
   useEffect(() => () => {
     if (bubbleTimer.current !== null) window.clearTimeout(bubbleTimer.current);
@@ -153,66 +189,195 @@ export default function App() {
     localStorage.setItem('sound-enabled', String(next));
   };
 
-  const changeScale = (direction: -1 | 1) => {
-    const next = Math.min(Math.max(scaleIndex + direction, 0), SCALE_OPTIONS.length - 1);
-    setScaleIndex(next);
-    localStorage.setItem('scale-index', String(next));
-    void resizeDesktopWidget(SCALE_OPTIONS[next]!);
+  const toggleLive2DSound = () => {
+    primeAudio();
+    const next = !live2DSoundEnabled;
+    setLive2DSound(next);
+    setLive2DSoundEnabled(next);
+    localStorage.setItem('live2d-sound-enabled', String(next));
+  };
+
+  useEffect(() => {
+    setLive2DSound(live2DSoundEnabled);
+  }, [live2DSoundEnabled]);
+
+  const changeScale = (nextPercent: number) => {
+    setScalePercent(nextPercent);
+    localStorage.setItem('scale-percent', String(nextPercent));
   };
 
   const togglePause = () => {
     const next = !paused;
     setPaused(next);
     if (!next) {
-      nextReminderAt.current = Date.now() + REMINDER_INTERVAL_MS;
-      setRemaining(REMINDER_INTERVAL_MS);
+      nextReminderAt.current = Date.now() + intervalMs;
     }
   };
 
-  const nextPosture = POSTURE_REMINDERS[postureIndex]!;
+  const chooseInterval = (minutes: number) => {
+    setIntervalMinutes(minutes);
+    localStorage.setItem('interval-minutes', String(minutes));
+    const next = minutes * 60 * 1000;
+    nextReminderAt.current = Date.now() + next;
+    setShowIntervalPicker(false);
+  };
+
+  const saveInterval = () => {
+    const minutes = Number(intervalDraft);
+    if (!Number.isInteger(minutes) || minutes < MIN_INTERVAL_MINUTES || minutes > MAX_INTERVAL_MINUTES) return;
+    chooseInterval(minutes);
+  };
+
+  const activeModel = MODEL_OPTIONS.find((model) => model.id === modelId) ?? MODEL_OPTIONS[0];
+
+  const closeControls = useCallback(() => {
+    setShowControls(false);
+    setShowIntervalPicker(false);
+    setShowModelPicker(false);
+    setShowScalePicker(false);
+  }, []);
+
+  useEffect(() => {
+    if (!showControls) return;
+    const timer = window.setTimeout(closeControls, 8_000);
+    return () => window.clearTimeout(timer);
+  }, [closeControls, showControls]);
 
   return (
-    <main className="widget-shell" onPointerDown={primeAudio}>
+    <main
+      className={`widget-shell ${showControls ? 'controls-visible' : ''}`}
+      style={{
+        '--pet-width': `${324 * scalePercent / 100}px`,
+        '--pet-height': `${327 * scalePercent / 100}px`,
+      } as CSSProperties}
+      onPointerDown={(event) => {
+        primeAudio();
+        if (event.button !== 0) return;
+        const target = event.target as HTMLElement;
+        // Interactive controls and the reminder bubble do not start window dragging.
+        if (!target.closest('button, input, .speech-bubble')) void startDesktopDrag();
+      }}
+      onContextMenu={(event) => {
+        event.preventDefault();
+        setShowControls(true);
+      }}
+      onClick={(event) => {
+        if (!(event.target as HTMLElement).closest('.control-dock, .interval-picker, .model-picker, .scale-picker')) {
+          closeControls();
+        }
+      }}
+    >
       <div className="drag-handle" data-tauri-drag-region>
-        <span className="drag-dots" data-tauri-drag-region>•••</span>
-        <button className="icon-button close-button" onClick={() => void closeDesktopWidget()} title="退出">×</button>
+        <GripHorizontal className="drag-dots" aria-hidden="true" data-tauri-drag-region />
       </div>
 
       {activeReminder ? (
-        <button className="speech-bubble" onClick={() => setActiveReminder(null)} aria-live="assertive">
-          <span className="bubble-label">{activeReminder.icon} {activeReminder.label}</span>
-          <span>{activeReminder.message}</span>
-          <small>轻点收起</small>
-        </button>
-      ) : (
-        <div className="next-reminder" data-tauri-drag-region>
-          <span>{nextPosture.icon}</span>
-          <span>{paused ? '提醒已暂停' : `${nextPosture.label} · ${formatRemaining(remaining)}`}</span>
+        <div className="speech-bubble" role="status" aria-live="assertive">
+          {activeReminder.message}
         </div>
-      )}
+      ) : null}
 
-      <Live2DPet reminderRevision={reminderRevision} speaking={activeReminder !== null} />
+      <Live2DPet reminderRevision={reminderRevision} speaking={activeReminder !== null} modelPath={activeModel.path} />
 
-      <nav className="control-dock" aria-label="挂件控制">
+      {showControls ? <>
+        {showIntervalPicker ? <div className="interval-picker" role="group" aria-label="提醒间隔">
+          <label htmlFor="interval-minutes">提醒间隔（分钟）</label>
+          <div>
+            <input
+              id="interval-minutes"
+              type="number"
+              min={MIN_INTERVAL_MINUTES}
+              max={MAX_INTERVAL_MINUTES}
+              step="1"
+              value={intervalDraft}
+              onChange={(event) => setIntervalDraft(event.target.value)}
+              onKeyDown={(event) => { if (event.key === 'Enter') saveInterval(); }}
+              autoFocus
+            />
+            <button onClick={saveInterval}>保存</button>
+          </div>
+          <small>可输入 1–1440 分钟</small>
+        </div> : null}
+        {showModelPicker ? <div className="model-picker" role="group" aria-label="更换角色">
+          <span>选择角色</span>
+          <div>{MODEL_OPTIONS.map((model) => (
+            <button key={model.id} className={model.id === activeModel.id ? 'selected' : ''} onClick={() => {
+              setModelId(model.id);
+              localStorage.setItem('model-id', model.id);
+              setShowModelPicker(false);
+            }}>{model.name}</button>
+          ))}</div>
+        </div> : null}
+        {showScalePicker ? <div className="scale-picker" role="group" aria-label="调整挂件大小">
+          <label htmlFor="scale-range">
+            <span>挂件大小</span>
+            <output htmlFor="scale-range">{scalePercent}%</output>
+          </label>
+          <input
+            id="scale-range"
+            type="range"
+            min={MIN_SCALE_PERCENT}
+            max={MAX_SCALE_PERCENT}
+            step={SCALE_STEP_PERCENT}
+            value={scalePercent}
+            aria-valuetext={`${scalePercent}%`}
+            style={{
+              '--scale-progress': `${((scalePercent - MIN_SCALE_PERCENT) / (MAX_SCALE_PERCENT - MIN_SCALE_PERCENT)) * 100}%`,
+            } as CSSProperties}
+            onChange={(event) => changeScale(Number(event.target.value))}
+            autoFocus
+          />
+          <div className="scale-range-labels" aria-hidden="true">
+            <span>{MIN_SCALE_PERCENT}%</span>
+            <span>{MAX_SCALE_PERCENT}%</span>
+          </div>
+        </div> : null}
+        <nav className="control-dock" aria-label="挂件控制">
         <button className={alwaysOnTop ? 'active' : ''} onClick={togglePin} title="置顶">
-          <span>⌖</span><small>{alwaysOnTop ? '已置顶' : '置顶'}</small>
+          <Pin aria-hidden="true" /><small>{alwaysOnTop ? '已置顶' : '置顶'}</small>
         </button>
-        <button onClick={() => changeScale(-1)} disabled={scaleIndex === 0} title="缩小">
-          <span>−</span><small>缩小</small>
+        <button onClick={() => {
+          setShowScalePicker((visible) => !visible);
+          setShowIntervalPicker(false);
+          setShowModelPicker(false);
+        }} className={showScalePicker ? 'active' : ''} title="调整挂件大小">
+          <Scaling aria-hidden="true" /><small>{scalePercent}%</small>
         </button>
         <button className="test-button" onClick={() => showReminder(false)} title="立即试听提醒">
-          <span>♪</span><small>试一下</small>
+          <BellRing aria-hidden="true" /><small>试一下</small>
         </button>
-        <button onClick={() => changeScale(1)} disabled={scaleIndex === SCALE_OPTIONS.length - 1} title="放大">
-          <span>＋</span><small>放大</small>
+        <button onClick={() => {
+          setIntervalDraft(String(intervalMinutes));
+          setShowIntervalPicker((visible) => !visible);
+          setShowModelPicker(false);
+          setShowScalePicker(false);
+        }} className={showIntervalPicker ? 'active' : ''} title="提醒间隔">
+          <Clock3 aria-hidden="true" /><small>{intervalMinutes}分</small>
+        </button>
+        <button onClick={() => {
+          setShowModelPicker((visible) => !visible);
+          setShowIntervalPicker(false);
+          setShowScalePicker(false);
+        }} className={showModelPicker ? 'active' : ''} title="更换角色">
+          <Sparkles aria-hidden="true" /><small>{activeModel.name}</small>
         </button>
         <button onClick={toggleSound} className={!soundEnabled ? 'muted' : ''} title="提示音">
-          <span>{soundEnabled ? '♬' : '♩'}</span><small>{soundEnabled ? '有声音' : '已静音'}</small>
+          {soundEnabled ? <Volume2 aria-hidden="true" /> : <VolumeX aria-hidden="true" />}
+          <small>{soundEnabled ? '有声音' : '已静音'}</small>
+        </button>
+        <button onClick={toggleLive2DSound} className={!live2DSoundEnabled ? 'muted' : ''} title="角色原声">
+          <AudioLines aria-hidden="true" />
+          <small>{live2DSoundEnabled ? '原声开' : '原声关'}</small>
         </button>
         <button onClick={togglePause} className={paused ? 'paused' : ''} title="暂停提醒">
-          <span>{paused ? '▶' : 'Ⅱ'}</span><small>{paused ? '继续' : '暂停'}</small>
+          {paused ? <Play aria-hidden="true" /> : <Pause aria-hidden="true" />}
+          <small>{paused ? '继续' : '暂停'}</small>
         </button>
-      </nav>
+        <button className="exit-button" onClick={() => void closeDesktopWidget()} title="退出挂件">
+          <LogOut aria-hidden="true" /><small>退出</small>
+        </button>
+        </nav>
+      </> : null}
     </main>
   );
 }
