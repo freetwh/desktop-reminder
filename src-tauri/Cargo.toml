@@ -1,0 +1,25 @@
+[package]
+name = "personal-reminder"
+version = "0.1.0"
+description = "A warm Live2D posture reminder desktop companion"
+authors = ["AnyWit"]
+edition = "2021"
+rust-version = "1.85"
+
+[lib]
+name = "personal_reminder_lib"
+crate-type = ["lib", "cdylib", "staticlib"]
+
+[[bin]]
+name = "personal-reminder"
+path = "src/main.rs"
+
+[build-dependencies]
+tauri-build = { version = "2.6.3", features = [] }
+
+[dependencies]
+tauri = { version = "2.11.5", features = ["macos-private-api"] }
+
+[target.'cfg(target_os = "macos")'.dependencies]
+core-foundation = "0.10.1"
+core-foundation-sys = "0.8.7"

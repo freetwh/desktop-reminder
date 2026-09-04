@@ -1,0 +1,183 @@
+:root {
+  font-family: "PingFang SC", "Microsoft YaHei", ui-rounded, system-ui, sans-serif;
+  color: #544b55;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+}
+
+* { box-sizing: border-box; }
+
+html, body, #root {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+  background: transparent;
+  user-select: none;
+}
+
+button { font: inherit; }
+
+.widget-shell {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.38);
+  border-radius: 30px;
+  background:
+    radial-gradient(circle at 70% 20%, rgba(255, 255, 255, 0.7), transparent 30%),
+    linear-gradient(155deg, rgba(255, 245, 237, 0.82), rgba(225, 243, 237, 0.72));
+  box-shadow: 0 18px 45px rgba(80, 65, 67, 0.2), inset 0 1px rgba(255, 255, 255, 0.75);
+  backdrop-filter: blur(18px);
+}
+
+.drag-handle {
+  position: absolute;
+  z-index: 20;
+  top: 0;
+  left: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 38px;
+  cursor: grab;
+}
+
+.drag-handle:active { cursor: grabbing; }
+.drag-dots { color: rgba(102, 87, 92, 0.35); letter-spacing: 3px; }
+
+.icon-button {
+  position: absolute;
+  right: 12px;
+  top: 10px;
+  width: 24px;
+  height: 24px;
+  padding: 0 0 2px;
+  border: 0;
+  border-radius: 50%;
+  color: rgba(91, 72, 77, 0.55);
+  background: rgba(255,255,255,0.35);
+  cursor: pointer;
+  line-height: 22px;
+}
+
+.icon-button:hover { color: #fff; background: #d98f8f; }
+
+.speech-bubble, .next-reminder {
+  position: absolute;
+  z-index: 15;
+  top: 34px;
+  left: 6%;
+  width: 88%;
+  border: 1px solid rgba(255,255,255,0.76);
+  border-radius: 20px 20px 20px 6px;
+  color: #5a4d53;
+  background: rgba(255, 255, 255, 0.88);
+  box-shadow: 0 10px 26px rgba(86, 67, 70, 0.12);
+}
+
+.speech-bubble {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  min-height: 102px;
+  padding: 15px 17px 12px;
+  border: 1px solid rgba(255,255,255,0.76);
+  text-align: left;
+  line-height: 1.55;
+  cursor: pointer;
+  animation: bubble-in 420ms cubic-bezier(.2,.9,.25,1.15);
+}
+
+.speech-bubble::after {
+  position: absolute;
+  left: 24px;
+  bottom: -10px;
+  width: 20px;
+  height: 20px;
+  content: "";
+  background: rgba(255,255,255,0.88);
+  transform: rotate(45deg);
+}
+
+.bubble-label { color: #bf7773; font-size: 13px; font-weight: 700; }
+.speech-bubble small { align-self: flex-end; color: #aa9da2; font-size: 10px; }
+
+.next-reminder {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  width: auto;
+  padding: 8px 13px;
+  color: rgba(87, 75, 80, 0.72);
+  font-size: 12px;
+  cursor: grab;
+}
+
+.pet-stage {
+  position: absolute;
+  z-index: 5;
+  inset: 78px 8px 55px;
+}
+
+.model-error {
+  position: absolute;
+  inset: 40% 20%;
+  color: #a86e6e;
+  font-size: 12px;
+  text-align: center;
+}
+
+.control-dock {
+  position: absolute;
+  z-index: 30;
+  right: 10px;
+  bottom: 10px;
+  left: 10px;
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 4px;
+  padding: 5px;
+  border: 1px solid rgba(255,255,255,0.62);
+  border-radius: 18px;
+  background: rgba(255,255,255,0.58);
+  box-shadow: 0 8px 25px rgba(82,67,70,0.12);
+  backdrop-filter: blur(14px);
+  opacity: 0.72;
+  transition: opacity 180ms ease, transform 180ms ease;
+}
+
+.control-dock:hover { opacity: 1; transform: translateY(-2px); }
+
+.control-dock button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  min-width: 0;
+  padding: 4px 2px;
+  border: 0;
+  border-radius: 12px;
+  color: #776970;
+  background: transparent;
+  cursor: pointer;
+}
+
+.control-dock button:hover { background: rgba(255,255,255,0.75); color: #b46f6c; }
+.control-dock button:disabled { opacity: 0.28; cursor: default; }
+.control-dock button span { font-size: 16px; line-height: 18px; }
+.control-dock button small { overflow: hidden; max-width: 100%; font-size: 8px; white-space: nowrap; }
+.control-dock .active, .control-dock .test-button { color: #b36e69; }
+.control-dock .muted, .control-dock .paused { color: #9b8b91; background: rgba(231,220,221,0.65); }
+
+@keyframes bubble-in {
+  from { opacity: 0; transform: translateY(12px) scale(.94); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .speech-bubble { animation: none; }
+  .control-dock { transition: none; }
+}
