@@ -62,11 +62,12 @@ button { font: inherit; }
   width: 300px;
   margin-left: -150px;
   padding: 8px 12px;
-  border: 1px solid rgba(255,255,255,0.5);
+  border: 1px solid rgba(255,255,255,0.14);
   border-radius: 14px 14px 5px 14px;
-  color: #5a4d53;
-  background: rgba(255, 255, 255, 0.64);
-  box-shadow: 0 6px 18px rgba(86, 67, 70, 0.08);
+  color: #f6eff0;
+  background: rgba(58, 47, 52, 0.9);
+  box-shadow: 0 8px 22px rgba(48, 36, 41, 0.32);
+  backdrop-filter: blur(10px);
   font-size: 13px;
   text-align: left;
   line-height: 1.45;
@@ -105,7 +106,7 @@ button { font: inherit; }
 
 .control-dock {
   position: absolute;
-  z-index: 30;
+  z-index: 60;
   width: 320px;
   margin-left: -160px;
   bottom: 10px;
@@ -167,6 +168,7 @@ button { font: inherit; }
   align-items: flex-end;
   justify-content: center;
   padding: 0 10px 61px;
+  cursor: default;
 }
 .more-panel {
   position: relative;
@@ -182,7 +184,21 @@ button { font: inherit; }
   user-select: text;
   animation: dock-in 160ms ease-out;
 }
-.panel-heading { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; color: #695960; font-size: 14px; }
+.panel-heading {
+  position: sticky;
+  top: -14px;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: -14px -14px 12px;
+  padding: 14px;
+  border-bottom: 1px solid rgba(180,145,143,.22);
+  background: rgba(255,255,255,0.96);
+  backdrop-filter: blur(16px);
+  color: #695960;
+  font-size: 14px;
+}
 .panel-heading button { border: 0; color: #9a858e; background: transparent; font-size: 20px; cursor: pointer; }
 .panel-label { display: block; margin: 10px 0 7px; color: #9a858e; font-size: 10px; }
 .prompt-list { display: grid; gap: 6px; }
@@ -192,6 +208,14 @@ button { font: inherit; }
 .prompt-row > button { flex: 0 0 25px; width: 25px; height: 25px; border: 0; border-radius: 8px; color: #a56868; background: rgba(247,239,237,.75); cursor: pointer; }
 .add-prompt, .clear-audio { margin-top: 7px; padding: 6px 9px; border: 0; border-radius: 8px; color: #806e76; background: rgba(247,239,237,.75); font-size: 10px; cursor: pointer; }
 .add-prompt:hover, .clear-audio:hover { color: #fff; background: #c9877f; }
+.audio-options { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.audio-options button { padding: 7px 4px; border: 1px solid rgba(180,145,143,.34); border-radius: 9px; color: #806e76; background: rgba(247,239,237,.75); font-size: 10px; cursor: pointer; transition: all 120ms ease-out; }
+.audio-options button:hover { border-color: #c9877f; color: #b46f6c; }
+.audio-options button.selected { border-color: #c9877f; color: #fff; background: #c9877f; }
+.audio-upload { display: flex; align-items: center; justify-content: center; margin-top: 7px; padding: 8px; border: 1px dashed rgba(180,145,143,.5); border-radius: 9px; color: #806e76; background: rgba(247,239,237,.5); font-size: 10px; cursor: pointer; transition: all 120ms ease-out; }
+.audio-upload:hover { border-color: #c9877f; color: #b46f6c; }
+.audio-upload.selected { border-style: solid; border-color: #c9877f; color: #b46f6c; }
+.audio-upload input[type="file"] { display: none; }
 .more-panel input[type="file"] { width: 100%; color: #806e76; font-size: 10px; }
 .panel-hint { display: block; margin-top: 6px; color: #ad9ea4; font-size: 9px; }
 

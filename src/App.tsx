@@ -36,11 +36,16 @@ const DEFAULT_SCALE_PERCENT = 100;
 const LEGACY_SCALE_OPTIONS = [80, 100, 120] as const;
 const MIN_INTERVAL_MINUTES = 1;
 const MAX_INTERVAL_MINUTES = 1_440;
-const DEFAULT_PROMPTS = POSTURE_REMINDERS.flatMap((reminder) => [...reminder.messages]);
+const DEFAULT_PROMPTS = POSTURE_REMINDERS.flatMap((reminder) => [...reminder.messages]).slice(0, 3);
 const MODEL_OPTIONS = [
   { id: 'haru', name: 'Haru', path: './live2d/haru/Haru.model3.json' },
   { id: 'hibiki', name: 'Hibiki', path: './live2d/hibiki/runtime/hibiki.model3.json' },
   { id: 'zundamon', name: 'Zundamon', path: './live2d/zundamon/runtime/zundamon.model3.json' },
+] as const;
+const BUILT_IN_SOUNDS = [
+  { id: 'bell', name: '清脆铃声', src: './audio/bell.mp3' },
+  { id: 'positive', name: '轻盈提示', src: './audio/positive.mp3' },
+  { id: 'message', name: '消息提醒', src: './audio/message.mp3' },
 ] as const;
 
 function readScalePercent(): number {
@@ -83,17 +88,42 @@ function readPrompts(): string[] {
   return [...DEFAULT_PROMPTS];
 }
 
+type StoredAudio = { kind: 'built-in'; id: string } | { kind: 'custom'; dataUrl: string };
+
+const DEFAULT_AUDIO: StoredAudio = { kind: 'built-in', id: BUILT_IN_SOUNDS[0].id };
+
+function readStoredAudio(): StoredAudio {
+  try {
+    const value = JSON.parse(localStorage.getItem('reminder-audio') ?? 'null');
+    if (value && typeof value === 'object' && (value as StoredAudio).kind === 'custom' && typeof (value as { dataUrl?: unknown }).dataUrl === 'string') {
+      return { kind: 'custom', dataUrl: (value as { dataUrl: string }).dataUrl };
+    }
+    if (value && typeof value === 'object' && (value as StoredAudio).kind === 'built-in') {
+      const id = (value as { id?: unknown }).id;
+      if (typeof id === 'string' && BUILT_IN_SOUNDS.some((sound) => sound.id === id)) return { kind: 'built-in', id };
+    }
+  } catch { /* migrate legacy plain-string value below */ }
+  const legacy = localStorage.getItem('reminder-audio');
+  if (legacy && legacy.startsWith('data:')) return { kind: 'custom', dataUrl: legacy };
+  return DEFAULT_AUDIO;
+}
+
+function resolveAudioSource(audio: StoredAudio): string | null {
+  if (audio.kind === 'custom') return audio.dataUrl;
+  return BUILT_IN_SOUNDS.find((sound) => sound.id === audio.id)?.src ?? null;
+}
+
 export default function App() {
   const [postureIndex, setPostureIndex] = useState(() =>
     Number(localStorage.getItem('posture-index') ?? 0) % POSTURE_REMINDERS.length,
   );
   const [alwaysOnTop, setPinned] = useState(() => readStoredBoolean('always-on-top', true));
   const [reminderVolume, setReminderVolume] = useState(() => {
-    const value = Number(localStorage.getItem('reminder-volume') ?? 70);
-    return Number.isFinite(value) ? Math.max(0, Math.min(100, value)) : 70;
+    const value = Number(localStorage.getItem('reminder-volume') ?? 20);
+    return Number.isFinite(value) ? Math.max(0, Math.min(100, value)) : 20;
   });
   const [prompts, setPrompts] = useState(readPrompts);
-  const [reminderAudio, setReminderAudio] = useState(() => localStorage.getItem('reminder-audio') ?? '');
+  const [reminderAudio, setReminderAudio] = useState(readStoredAudio);
   const [live2DSoundEnabled, setLive2DSoundEnabled] = useState(() =>
     readStoredBoolean('live2d-sound-enabled', false),
   );
@@ -121,10 +151,11 @@ export default function App() {
       message: prompts.length ? prompts[Math.floor(Math.random() * prompts.length)]! : pickMessage(reminder),
     });
     setReminderRevision((revision) => revision + 1);
-    if (reminderAudio) {
-      const audio = new Audio(reminderAudio);
+    const source = resolveAudioSource(reminderAudio);
+    if (source) {
+      const audio = new Audio(source);
       audio.volume = reminderVolume / 100;
-      void audio.play().catch(() => undefined);
+      void audio.play().catch(() => playBitChime(reminderVolume / 100));
     } else playBitChime(reminderVolume / 100);
 
     if (bubbleTimer.current !== null) window.clearTimeout(bubbleTimer.current);
@@ -256,6 +287,7 @@ export default function App() {
     setShowIntervalPicker(false);
     setShowModelPicker(false);
     setShowScalePicker(false);
+    // The "more" panel is a modal: it only closes through its own close button.
     setShowMorePanel(false);
     setShowVolumePicker(false);
   }, []);
@@ -264,7 +296,9 @@ export default function App() {
     if (!showControls || showMorePanel) return;
     const timer = window.setTimeout(closeControls, 8_000);
     return () => window.clearTimeout(timer);
-  }, [closeControls, showControls]);
+  }, [closeControls, showControls, showMorePanel]);
+
+  const closeMorePanel = useCallback(() => setShowMorePanel(false), []);
 
   return (
     <main
@@ -278,7 +312,7 @@ export default function App() {
         if (event.button !== 0) return;
         const target = event.target as HTMLElement;
         // Interactive controls and the reminder bubble do not start window dragging.
-        if (!target.closest('button, input, textarea, .speech-bubble, .more-overlay')) void startDesktopDrag();
+        if (!target.closest('button, input, textarea, .speech-bubble, .more-overlay, .more-panel')) void startDesktopDrag();
       }}
       onContextMenu={(event) => {
         event.preventDefault();
@@ -357,8 +391,32 @@ export default function App() {
             <span>{MAX_SCALE_PERCENT}%</span>
           </div>
         </div> : null}
-        {showMorePanel ? <div className="more-overlay" role="presentation"><div className="more-panel" role="dialog" aria-label="更多设置">
-          <div className="panel-heading"><strong>更多设置</strong><button type="button" onClick={() => setShowMorePanel(false)} aria-label="关闭">×</button></div>
+        {showMorePanel ? <div className="more-overlay" role="presentation" onClick={(event) => { if ((event.target as HTMLElement).closest('.control-dock')) return; event.stopPropagation(); }}><div className="more-panel" role="dialog" aria-modal="true" aria-label="更多设置">
+          <div className="panel-heading"><strong>更多设置</strong><button type="button" onClick={closeMorePanel} aria-label="关闭">×</button></div>
+          <label className="panel-label">提醒音频</label>
+          <div className="audio-options">
+            {BUILT_IN_SOUNDS.map((sound) => <button
+              key={sound.id}
+              type="button"
+              className={reminderAudio.kind === 'built-in' && reminderAudio.id === sound.id ? 'selected' : ''}
+              onClick={() => {
+                const next: StoredAudio = { kind: 'built-in', id: sound.id };
+                setReminderAudio(next);
+                localStorage.setItem('reminder-audio', JSON.stringify(next));
+                primeAudio();
+                const preview = new Audio(sound.src);
+                preview.volume = reminderVolume / 100;
+                void preview.play().catch(() => undefined);
+              }}
+            >{sound.name}</button>)}
+          </div>
+          <label className={`audio-upload ${reminderAudio.kind === 'custom' ? 'selected' : ''}`} htmlFor="reminder-audio">
+            <span>{reminderAudio.kind === 'custom' ? '已使用自定义音频' : '上传自定义音频'}</span>
+            <input id="reminder-audio" type="file" accept="audio/*" onChange={(event) => {
+              const file = event.target.files?.[0]; if (!file) return; const reader = new FileReader(); reader.onload = () => { const next: StoredAudio = { kind: 'custom', dataUrl: String(reader.result) }; setReminderAudio(next); localStorage.setItem('reminder-audio', JSON.stringify(next)); }; reader.readAsDataURL(file);
+            }} />
+          </label>
+          {reminderAudio.kind === 'custom' ? <button type="button" className="clear-audio" onClick={() => { const next: StoredAudio = { kind: 'built-in', id: BUILT_IN_SOUNDS[0].id }; setReminderAudio(next); localStorage.setItem('reminder-audio', JSON.stringify(next)); }}>恢复内置音效</button> : null}
           <label className="panel-label">角色提示语</label>
           <div className="prompt-list">
             {prompts.map((prompt, index) => <div className="prompt-row" key={index}>
@@ -369,11 +427,6 @@ export default function App() {
             </div>)}
           </div>
           <button type="button" className="add-prompt" onClick={() => { const next = [...prompts, '']; setPrompts(next); localStorage.setItem('reminder-prompts', JSON.stringify(next)); }}>＋ 添加提示语</button>
-          <label className="panel-label" htmlFor="reminder-audio">提醒音频</label>
-          <input id="reminder-audio" type="file" accept="audio/*" onChange={(event) => {
-            const file = event.target.files?.[0]; if (!file) return; const reader = new FileReader(); reader.onload = () => { const value = String(reader.result); setReminderAudio(value); localStorage.setItem('reminder-audio', value); }; reader.readAsDataURL(file);
-          }} />
-          {reminderAudio ? <button type="button" className="clear-audio" onClick={() => { setReminderAudio(''); localStorage.removeItem('reminder-audio'); }}>恢复默认音效</button> : <small className="panel-hint">未选择时使用内置提醒音</small>}
         </div></div> : null}
         {showVolumePicker ? <div className="volume-picker" role="group" aria-label="调整音量">
           <label htmlFor="volume-range"><span>提醒音量</span><output>{reminderVolume}%</output></label>

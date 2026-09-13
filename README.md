@@ -13,7 +13,11 @@ pnpm install
 pnpm dev:desktop
 ```
 
-挂件主体背景透明；右键挂件才会出现置顶、缩放、试听、提示音、角色原声、暂停、提醒间隔和更换角色操作栏。间隔默认 30 分钟，并可自由输入 1–1440 分钟；角色可在 Haru、Hibiki、Zundamon 间切换，8 秒无操作后自动隐藏。开启“角色原声”后，会播放模型动作自带的语音片段；两个声音开关彼此独立。按住挂件任意非按钮区域即可移动整个窗口；偏好会保存在本机。macOS 会直接检测锁屏状态；电脑休眠或锁屏期间不提醒，恢复使用后重新计时，不会补发旧提醒。其他桌面平台会通过计时器挂起间隔识别休眠恢复。
+挂件主体背景透明；右键挂件才会出现置顶、缩放、试听、提示音、角色原声、暂停、提醒间隔和更换角色操作栏。间隔默认 30 分钟，并可自由输入 1–1440 分钟；角色可在 Haru、Hibiki、Zundamon 间切换，8 秒无操作后自动隐藏。开启“角色原声”后，会播放模型动作自带的语音片段；两个声音开关彼此独立。
+
+「更多设置」是一个模态弹窗，只有点击面板右上角的关闭按钮才会关闭；点击弹窗外区域或等待都不会自动收起，标题栏固定在顶部不随内容滚动。弹窗里可编辑角色提示语（默认 3 条），并在 3 个内置提醒音（清脆铃声、轻盈提示、消息提醒）之间切换，或上传自定义音频文件。
+
+按住挂件任意非按钮区域即可移动整个窗口；偏好会保存在本机。macOS 会直接检测锁屏状态；电脑休眠或锁屏期间不提醒，恢复使用后重新计时，不会补发旧提醒。其他桌面平台会通过计时器挂起间隔识别休眠恢复。
 
 ```bash
 pnpm test
@@ -26,6 +30,7 @@ pnpm build:desktop
 ## 调整内容
 
 - 提示语：`src/reminders.ts`
+- 内置提醒音：`public/audio`（`bell.mp3`、`positive.mp3`、`message.mp3`）
 - 提醒间隔：`src/reminders.ts` 中的 `REMINDER_INTERVAL_MS`
 - 默认模型入口：`src/live2dScene.ts`
 - 视觉样式：`src/styles.css`
@@ -34,3 +39,11 @@ pnpm build:desktop
 ## Live2D 资源说明
 
 项目默认模型 Haru 和 Cubism Core 来自 Live2D 官方示例资源，仅用于快速验证技术链路。发布或商业使用前，请确认并遵守 [Live2D Free Material License Agreement](https://www.live2d.com/eula/live2d-free-material-license-agreement_en.html) 及 Cubism SDK/Core 的对应许可；正式产品建议替换为拥有明确使用权的自有模型。
+
+## 音效资源说明
+
+内置的 3 个提醒音效来自 [Mixkit Free Sound Effects](https://mixkit.co/free-sound-effects/notification/)，遵循 [Mixkit License](https://mixkit.co/license/) 免费使用（可商用，无需署名，但不可单独转售或再分发原始音效文件）。对应关系：
+
+- `public/audio/bell.mp3` — Bell notification
+- `public/audio/positive.mp3` — Positive notification
+- `public/audio/message.mp3` — Message pop alert
