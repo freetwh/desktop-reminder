@@ -140,6 +140,61 @@ button { font: inherit; }
   animation: dock-in 160ms ease-out;
 }
 
+.volume-picker {
+  position: absolute;
+  z-index: 40;
+  width: 220px;
+  margin-left: -110px;
+  bottom: 61px;
+  left: 50%;
+  padding: 11px 13px 10px;
+  border: 1px solid rgba(255,255,255,0.76);
+  border-radius: 16px;
+  background: rgba(255,255,255,0.9);
+  box-shadow: 0 10px 26px rgba(86, 67, 70, 0.16);
+  backdrop-filter: blur(16px);
+  animation: dock-in 160ms ease-out;
+}
+.volume-picker label { display: flex; justify-content: space-between; margin-bottom: 8px; color: #9a858e; font-size: 10px; }
+.volume-picker output { color: #b46f6c; font-weight: 700; }
+.volume-picker input[type="range"] { width: 100%; accent-color: #c9877f; cursor: pointer; }
+
+.more-overlay {
+  position: absolute;
+  z-index: 45;
+  inset: 0;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 0 10px 61px;
+}
+.more-panel {
+  position: relative;
+  width: min(360px, 100%);
+  max-height: calc(100% - 90px);
+  overflow: auto;
+  padding: 14px;
+  border: 1px solid rgba(255,255,255,0.78);
+  border-radius: 18px;
+  background: rgba(255,255,255,0.94);
+  box-shadow: 0 10px 28px rgba(86, 67, 70, 0.18);
+  backdrop-filter: blur(16px);
+  user-select: text;
+  animation: dock-in 160ms ease-out;
+}
+.panel-heading { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; color: #695960; font-size: 14px; }
+.panel-heading button { border: 0; color: #9a858e; background: transparent; font-size: 20px; cursor: pointer; }
+.panel-label { display: block; margin: 10px 0 7px; color: #9a858e; font-size: 10px; }
+.prompt-list { display: grid; gap: 6px; }
+.prompt-row { display: flex; align-items: flex-start; gap: 5px; }
+.prompt-row textarea { flex: 1; min-height: 44px; resize: vertical; padding: 7px 8px; border: 1px solid rgba(180,145,143,.34); border-radius: 9px; outline: none; color: #695960; background: rgba(247,239,237,.75); font-size: 11px; line-height: 1.4; }
+.prompt-row textarea:focus { border-color: #c9877f; box-shadow: 0 0 0 2px rgba(201,135,127,.15); }
+.prompt-row > button { flex: 0 0 25px; width: 25px; height: 25px; border: 0; border-radius: 8px; color: #a56868; background: rgba(247,239,237,.75); cursor: pointer; }
+.add-prompt, .clear-audio { margin-top: 7px; padding: 6px 9px; border: 0; border-radius: 8px; color: #806e76; background: rgba(247,239,237,.75); font-size: 10px; cursor: pointer; }
+.add-prompt:hover, .clear-audio:hover { color: #fff; background: #c9877f; }
+.more-panel input[type="file"] { width: 100%; color: #806e76; font-size: 10px; }
+.panel-hint { display: block; margin-top: 6px; color: #ad9ea4; font-size: 9px; }
+
 .interval-picker > label {
   display: block;
   margin-bottom: 7px;
@@ -285,7 +340,7 @@ button { font: inherit; }
 .control-dock button svg { width: 16px; height: 16px; stroke-width: 1.8; }
 .control-dock button small { overflow: hidden; max-width: 100%; font-size: 8px; white-space: nowrap; }
 .control-dock .active, .control-dock .test-button { color: #b36e69; }
-.control-dock .muted, .control-dock .paused { color: #9b8b91; background: rgba(231,220,221,0.65); }
+.control-dock .muted { color: #9b8b91; background: rgba(231,220,221,0.65); }
 .control-dock .exit-button { color: #a56868; }
 .control-dock .exit-button:hover { color: #fff; background: #c97b78; }
 

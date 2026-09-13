@@ -15,7 +15,7 @@ const BEAT_SECONDS = 0.28;
 let context: AudioContext | null = null;
 
 /** A soft, complete 8-bit rendition of "两只老虎", synthesized locally. */
-export function playBitChime(): () => void {
+export function playBitChime(volume = 1): () => void {
   context ??= new AudioContext();
   const audioContext = context;
   if (audioContext.state === 'suspended') void audioContext.resume();
@@ -24,8 +24,10 @@ export function playBitChime(): () => void {
   const songDuration = SONG.reduce((total, [, beats]) => total + beats * BEAT_SECONDS, 0);
   master.gain.setValueAtTime(0.0001, start);
   // 提高整体响度，让提醒音在正常系统音量下更容易听见。
-  master.gain.exponentialRampToValueAtTime(0.35, start + 0.05);
-  master.gain.setValueAtTime(0.35, start + songDuration - 0.18);
+  const level = Math.max(0, Math.min(1, volume));
+  if (level === 0) return () => undefined;
+  master.gain.exponentialRampToValueAtTime(0.35 * level, start + 0.05);
+  master.gain.setValueAtTime(0.35 * level, start + songDuration - 0.18);
   master.gain.exponentialRampToValueAtTime(0.0001, start + songDuration);
   master.connect(audioContext.destination);
 

@@ -5,9 +5,7 @@ import {
   AudioLines,
   GripHorizontal,
   LogOut,
-  Pause,
   Pin,
-  Play,
   Scaling,
   Sparkles,
   Volume2,
@@ -38,6 +36,7 @@ const DEFAULT_SCALE_PERCENT = 100;
 const LEGACY_SCALE_OPTIONS = [80, 100, 120] as const;
 const MIN_INTERVAL_MINUTES = 1;
 const MAX_INTERVAL_MINUTES = 1_440;
+const DEFAULT_PROMPTS = POSTURE_REMINDERS.flatMap((reminder) => [...reminder.messages]);
 const MODEL_OPTIONS = [
   { id: 'haru', name: 'Haru', path: './live2d/haru/Haru.model3.json' },
   { id: 'hibiki', name: 'Hibiki', path: './live2d/hibiki/runtime/hibiki.model3.json' },
@@ -73,16 +72,31 @@ function readStoredBoolean(key: string, fallback: boolean): boolean {
   return value === null ? fallback : value === 'true';
 }
 
+function readPrompts(): string[] {
+  try {
+    const value = JSON.parse(localStorage.getItem('reminder-prompts') ?? 'null');
+    if (Array.isArray(value)) {
+      const prompts = value.filter((item): item is string => typeof item === 'string').map((item) => item.trim()).filter(Boolean);
+      if (prompts.length) return prompts;
+    }
+  } catch { /* use defaults */ }
+  return [...DEFAULT_PROMPTS];
+}
+
 export default function App() {
   const [postureIndex, setPostureIndex] = useState(() =>
     Number(localStorage.getItem('posture-index') ?? 0) % POSTURE_REMINDERS.length,
   );
   const [alwaysOnTop, setPinned] = useState(() => readStoredBoolean('always-on-top', true));
-  const [soundEnabled, setSoundEnabled] = useState(() => readStoredBoolean('sound-enabled', true));
+  const [reminderVolume, setReminderVolume] = useState(() => {
+    const value = Number(localStorage.getItem('reminder-volume') ?? 70);
+    return Number.isFinite(value) ? Math.max(0, Math.min(100, value)) : 70;
+  });
+  const [prompts, setPrompts] = useState(readPrompts);
+  const [reminderAudio, setReminderAudio] = useState(() => localStorage.getItem('reminder-audio') ?? '');
   const [live2DSoundEnabled, setLive2DSoundEnabled] = useState(() =>
     readStoredBoolean('live2d-sound-enabled', false),
   );
-  const [paused, setPaused] = useState(false);
   const [intervalMinutes, setIntervalMinutes] = useState(readIntervalMinutes);
   const [intervalDraft, setIntervalDraft] = useState(() => String(readIntervalMinutes()));
   const [showIntervalPicker, setShowIntervalPicker] = useState(false);
@@ -90,6 +104,8 @@ export default function App() {
   const [showModelPicker, setShowModelPicker] = useState(false);
   const [scalePercent, setScalePercent] = useState(readScalePercent);
   const [showScalePicker, setShowScalePicker] = useState(false);
+  const [showMorePanel, setShowMorePanel] = useState(false);
+  const [showVolumePicker, setShowVolumePicker] = useState(false);
   const [activeReminder, setActiveReminder] = useState<ActiveReminder | null>(null);
   const [showControls, setShowControls] = useState(false);
   const [reminderRevision, setReminderRevision] = useState(0);
@@ -102,10 +118,14 @@ export default function App() {
   const showReminder = useCallback((advanceRotation: boolean) => {
     const reminder = POSTURE_REMINDERS[postureIndex]!;
     setActiveReminder({
-      message: pickMessage(reminder),
+      message: prompts.length ? prompts[Math.floor(Math.random() * prompts.length)]! : pickMessage(reminder),
     });
     setReminderRevision((revision) => revision + 1);
-    if (soundEnabled) playBitChime();
+    if (reminderAudio) {
+      const audio = new Audio(reminderAudio);
+      audio.volume = reminderVolume / 100;
+      void audio.play().catch(() => undefined);
+    } else playBitChime(reminderVolume / 100);
 
     if (bubbleTimer.current !== null) window.clearTimeout(bubbleTimer.current);
     bubbleTimer.current = window.setTimeout(() => {
@@ -119,7 +139,7 @@ export default function App() {
       localStorage.setItem('posture-index', String(nextIndex));
       nextReminderAt.current = Date.now() + intervalMs;
     }
-  }, [intervalMs, postureIndex, soundEnabled]);
+  }, [intervalMs, postureIndex, prompts, reminderAudio, reminderVolume]);
 
   useEffect(() => {
     void setAlwaysOnTop(alwaysOnTop);
@@ -134,7 +154,7 @@ export default function App() {
       }
       lastTickAt.current = now;
 
-      if (paused || screenLocked.current) return;
+      if (screenLocked.current) return;
       const timeLeft = nextReminderAt.current - now;
       if (timeLeft <= 0) showReminder(true);
     }, 1000);
@@ -151,7 +171,7 @@ export default function App() {
       window.clearInterval(timer);
       document.removeEventListener('visibilitychange', handleVisibility);
     };
-  }, [intervalMs, paused, showReminder]);
+  }, [intervalMs, showReminder]);
 
   useEffect(() => {
     let disposed = false;
@@ -193,11 +213,9 @@ export default function App() {
     setActiveReminder(null);
   };
 
-  const toggleSound = () => {
-    primeAudio();
-    const next = !soundEnabled;
-    setSoundEnabled(next);
-    localStorage.setItem('sound-enabled', String(next));
+  const changeVolume = (value: number) => {
+    setReminderVolume(value);
+    localStorage.setItem('reminder-volume', String(value));
   };
 
   const toggleLive2DSound = () => {
@@ -215,14 +233,6 @@ export default function App() {
   const changeScale = (nextPercent: number) => {
     setScalePercent(nextPercent);
     localStorage.setItem('scale-percent', String(nextPercent));
-  };
-
-  const togglePause = () => {
-    const next = !paused;
-    setPaused(next);
-    if (!next) {
-      nextReminderAt.current = Date.now() + intervalMs;
-    }
   };
 
   const chooseInterval = (minutes: number) => {
@@ -246,10 +256,12 @@ export default function App() {
     setShowIntervalPicker(false);
     setShowModelPicker(false);
     setShowScalePicker(false);
+    setShowMorePanel(false);
+    setShowVolumePicker(false);
   }, []);
 
   useEffect(() => {
-    if (!showControls) return;
+    if (!showControls || showMorePanel) return;
     const timer = window.setTimeout(closeControls, 8_000);
     return () => window.clearTimeout(timer);
   }, [closeControls, showControls]);
@@ -266,14 +278,15 @@ export default function App() {
         if (event.button !== 0) return;
         const target = event.target as HTMLElement;
         // Interactive controls and the reminder bubble do not start window dragging.
-        if (!target.closest('button, input, .speech-bubble')) void startDesktopDrag();
+        if (!target.closest('button, input, textarea, .speech-bubble, .more-overlay')) void startDesktopDrag();
       }}
       onContextMenu={(event) => {
         event.preventDefault();
         setShowControls(true);
       }}
       onClick={(event) => {
-        if (!(event.target as HTMLElement).closest('.control-dock, .interval-picker, .model-picker, .scale-picker')) {
+        if (showMorePanel) return;
+        if (!(event.target as HTMLElement).closest('.control-dock, .interval-picker, .model-picker, .scale-picker, .more-panel, .volume-picker')) {
           closeControls();
         }
       }}
@@ -344,6 +357,28 @@ export default function App() {
             <span>{MAX_SCALE_PERCENT}%</span>
           </div>
         </div> : null}
+        {showMorePanel ? <div className="more-overlay" role="presentation"><div className="more-panel" role="dialog" aria-label="更多设置">
+          <div className="panel-heading"><strong>更多设置</strong><button type="button" onClick={() => setShowMorePanel(false)} aria-label="关闭">×</button></div>
+          <label className="panel-label">角色提示语</label>
+          <div className="prompt-list">
+            {prompts.map((prompt, index) => <div className="prompt-row" key={index}>
+              <textarea value={prompt} onChange={(event) => {
+                const next = [...prompts]; next[index] = event.target.value; setPrompts(next); localStorage.setItem('reminder-prompts', JSON.stringify(next));
+              }} aria-label={`提示语 ${index + 1}`} />
+              <button type="button" onClick={() => { const next = prompts.filter((_, i) => i !== index); setPrompts(next); localStorage.setItem('reminder-prompts', JSON.stringify(next)); }} aria-label="删除提示语">−</button>
+            </div>)}
+          </div>
+          <button type="button" className="add-prompt" onClick={() => { const next = [...prompts, '']; setPrompts(next); localStorage.setItem('reminder-prompts', JSON.stringify(next)); }}>＋ 添加提示语</button>
+          <label className="panel-label" htmlFor="reminder-audio">提醒音频</label>
+          <input id="reminder-audio" type="file" accept="audio/*" onChange={(event) => {
+            const file = event.target.files?.[0]; if (!file) return; const reader = new FileReader(); reader.onload = () => { const value = String(reader.result); setReminderAudio(value); localStorage.setItem('reminder-audio', value); }; reader.readAsDataURL(file);
+          }} />
+          {reminderAudio ? <button type="button" className="clear-audio" onClick={() => { setReminderAudio(''); localStorage.removeItem('reminder-audio'); }}>恢复默认音效</button> : <small className="panel-hint">未选择时使用内置提醒音</small>}
+        </div></div> : null}
+        {showVolumePicker ? <div className="volume-picker" role="group" aria-label="调整音量">
+          <label htmlFor="volume-range"><span>提醒音量</span><output>{reminderVolume}%</output></label>
+          <input id="volume-range" type="range" min="0" max="100" step="1" value={reminderVolume} onChange={(event) => changeVolume(Number(event.target.value))} autoFocus />
+        </div> : null}
         <nav className="control-dock" aria-label="挂件控制">
         <button className={alwaysOnTop ? 'active' : ''} onClick={togglePin} title="置顶">
           <Pin aria-hidden="true" /><small>{alwaysOnTop ? '已置顶' : '置顶'}</small>
@@ -373,17 +408,16 @@ export default function App() {
         }} className={showModelPicker ? 'active' : ''} title="更换角色">
           <Sparkles aria-hidden="true" /><small>{activeModel.name}</small>
         </button>
-        <button onClick={toggleSound} className={!soundEnabled ? 'muted' : ''} title="提示音">
-          {soundEnabled ? <Volume2 aria-hidden="true" /> : <VolumeX aria-hidden="true" />}
-          <small>{soundEnabled ? '有声音' : '已静音'}</small>
+        <button onClick={() => { setShowVolumePicker((visible) => !visible); setShowMorePanel(false); setShowScalePicker(false); setShowIntervalPicker(false); setShowModelPicker(false); }} className={showVolumePicker ? 'active' : ''} title="音量">
+          {reminderVolume === 0 ? <VolumeX aria-hidden="true" /> : <Volume2 aria-hidden="true" />}
+          <small>音量</small>
         </button>
         <button onClick={toggleLive2DSound} className={!live2DSoundEnabled ? 'muted' : ''} title="角色原声">
           <AudioLines aria-hidden="true" />
           <small>{live2DSoundEnabled ? '原声开' : '原声关'}</small>
         </button>
-        <button onClick={togglePause} className={paused ? 'paused' : ''} title="暂停提醒">
-          {paused ? <Play aria-hidden="true" /> : <Pause aria-hidden="true" />}
-          <small>{paused ? '继续' : '暂停'}</small>
+        <button onClick={() => { setShowMorePanel((visible) => !visible); setShowIntervalPicker(false); setShowModelPicker(false); setShowScalePicker(false); }} className={showMorePanel ? 'active' : ''} title="更多设置">
+          <Sparkles aria-hidden="true" /><small>更多</small>
         </button>
         <button className="exit-button" onClick={() => void closeDesktopWidget()} title="退出挂件">
           <LogOut aria-hidden="true" /><small>退出</small>
